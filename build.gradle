@@ -1,0 +1,19 @@
+plugins {
+    id 'java'
+    id 'io.quarkus' version '3.2.3.Final'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation enforcedPlatform('io.quarkus:quarkus-bom:3.2.3.Final')
+    implementation 'io.quarkus:quarkus-resteasy-reactive'
+    implementation 'io.quarkus:quarkus-arc'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
