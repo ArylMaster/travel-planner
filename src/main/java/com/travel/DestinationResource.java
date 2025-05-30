@@ -3,12 +3,15 @@ package com.travel;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
-import java.util.List;
+import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+
 import com.travel.model.Destination;
+import com.travel.service.DestinationService;
+
+import java.util.List;
 
 @ApplicationScoped
 @Path("/destinations")
@@ -16,24 +19,23 @@ import com.travel.model.Destination;
 @Consumes(MediaType.APPLICATION_JSON)
 public class DestinationResource {
 
-    private List<Destination> destinations = new ArrayList<>();
+    @Inject
+    DestinationService destinationService;
 
     public DestinationResource() {
         System.out.println(">>> DestinationResource initialized");
     }
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
     public List<Destination> getAll() {
-        System.out.println(">>> getAll called, size: " + destinations.size());
-        return destinations;
+        System.out.println(">>> getAll called");
+        return destinationService.getAllDestinations();
     }
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
     public Response addDestination(@Valid Destination destination) {
-        destinations.add(destination);
-        System.out.println(">>> addDestination called, new size: " + destinations.size());
+        destinationService.addDestination(destination);
+        System.out.println(">>> addDestination called");
         return Response.status(Status.CREATED).build();
     }
 }

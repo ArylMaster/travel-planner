@@ -16,6 +16,9 @@ dependencies {
     implementation platform("software.amazon.awssdk:bom:2.25.4") // use latest stable
     implementation 'software.amazon.awssdk:dynamodb'
     implementation 'software.amazon.awssdk:auth'
+    implementation("software.amazon.awssdk:dynamodb:2.25.3")
+    implementation("software.amazon.awssdk:url-connection-client:2.25.3")
+
 }
 
 java {
