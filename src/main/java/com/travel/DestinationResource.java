@@ -38,4 +38,44 @@ public class DestinationResource {
         System.out.println(">>> addDestination called");
         return Response.status(Status.CREATED).build();
     }
+
+    @GET
+    @Path("/{id}")
+    public Response getById(@PathParam("id") String id) {
+        for (Destination destination : destinationService.getAllDestinations()) {
+            if (destination.getId().equals(id)) {
+                return Response.ok(destination).build();
+            }
+        }
+        return Response.status(Status.NOT_FOUND).entity("Destination not found").build();
+    }
+
+    @PUT
+    @Path("/{id}")
+    public Response updateDestination(@PathParam("id") String id, @Valid Destination updated) {
+        for (Destination destination : destinationService.getAllDestinations()) {
+            if (destination.getId().equals(id)) {
+                destination.setName(updated.getName());
+                destination.setCountry(updated.getCountry());
+                destination.setDescription(updated.getDescription());
+                return Response.ok(destination).build();
+            }
+        }
+        return Response.status(Status.NOT_FOUND).entity("Destination not found").build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public Response deleteDestination(@PathParam("id") String id) {
+        List<Destination> destinations = destinationService.getAllDestinations();
+        for (int i = 0; i < destinations.size(); i++) {
+            if (destinations.get(i).getId().equals(id)) {
+                destinations.remove(i);
+                return Response.noContent().build();
+            }
+        }
+        return Response.status(Status.NOT_FOUND).entity("Destination not found").build();
+    }
+
+
 }

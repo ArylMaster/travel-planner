@@ -2,58 +2,83 @@ package com.travel.service;
 
 import com.travel.model.Destination;
 import jakarta.enterprise.context.ApplicationScoped;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import jakarta.annotation.PostConstruct;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.enhanced.dynamodb.*;
+import software.amazon.awssdk.enhanced.dynamodb.model.*;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.*;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.net.URI;
-import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class DestinationService {
 
-    private final DynamoDbClient dynamoDb;
+    private DynamoDbEnhancedClient enhancedClient;
+    private DynamoDbTable<Destination> destinationTable;
 
-    private static final String TABLE_NAME = "Destinations";
-
-    public DestinationService() {
-        this.dynamoDb = DynamoDbClient.builder()
+    @PostConstruct
+    public void init() {
+        DynamoDbClient dynamoDbClient = DynamoDbClient.builder()
                 .endpointOverride(URI.create("http://localhost:8000"))
+                .region(Region.US_WEST_2)
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create("dummy-key", "dummy-secret")))
                 .build();
+
+        this.enhancedClient = DynamoDbEnhancedClient.builder()
+                .dynamoDbClient(dynamoDbClient)
+                .build();
+
+        this.destinationTable = enhancedClient.table("Destinations", TableSchema.fromBean(Destination.class));
+
+        // Create table if not exists
+        try {
+            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName("Destinations").build());
+        } catch (ResourceNotFoundException e) {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName("Destinations")
+                    .keySchema(KeySchemaElement.builder()
+                            .attributeName("id")
+                            .keyType(KeyType.HASH)
+                            .build())
+                    .attributeDefinitions(AttributeDefinition.builder()
+                            .attributeName("id")
+                            .attributeType(ScalarAttributeType.S)
+                            .build())
+                    .provisionedThroughput(ProvisionedThroughput.builder()
+                            .readCapacityUnits(5L)
+                            .writeCapacityUnits(5L)
+                            .build())
+                    .build());
+        }
     }
 
     public void addDestination(Destination destination) {
-        Map<String, AttributeValue> item = new HashMap<>();
-        item.put("id", AttributeValue.fromS(destination.id));
-        item.put("name", AttributeValue.fromS(destination.name));
-        item.put("country", AttributeValue.fromS(destination.country));
-        item.put("description", AttributeValue.fromS(destination.description));
-
-        PutItemRequest request = PutItemRequest.builder()
-                .tableName(TABLE_NAME)
-                .item(item)
-                .build();
-
-        dynamoDb.putItem(request);
+        destinationTable.putItem(destination);
     }
 
     public List<Destination> getAllDestinations() {
-        ScanRequest scanRequest = ScanRequest.builder()
-                .tableName(TABLE_NAME)
-                .build();
+        return destinationTable.scan()
+                .items()
+                .stream()
+                .collect(Collectors.toList());
+    }
 
-        ScanResponse result = dynamoDb.scan(scanRequest);
-        List<Destination> destinations = new ArrayList<>();
+    public void updateDestination(Destination destination) {
+        destinationTable.updateItem(destination);
+    }
 
-        for (Map<String, AttributeValue> item : result.items()) {
-            Destination dest = new Destination(
-                    item.get("id").s(),
-                    item.get("name").s(),
-                    item.get("country").s(),
-                    item.get("description").s()
-            );
-            destinations.add(dest);
-        }
+    public void deleteDestination(String id) {
+        destinationTable.deleteItem(Key.builder().partitionValue(id).build());
+    }
 
-        return destinations;
+    public Destination getDestination(String id) {
+        return destinationTable.getItem(Key.builder().partitionValue(id).build());
     }
 }
